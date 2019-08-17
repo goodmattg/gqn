@@ -92,3 +92,9 @@ ENV/
 
 # Development environment
 *.code-workspace
+
+# Data
+/data
+/config/*.yaml
+!/config/default.yaml
+# Non default configs
