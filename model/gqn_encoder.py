@@ -8,58 +8,76 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Conv2D, Add, Concatenate
 from .gqn_utils import broadcast_pose
 
 
-def tower_encoder(frames: tf.Tensor, poses: tf.Tensor, scope="TowerEncoder"):
-    """
-    Feed-forward convolutional architecture.
-    """
-    endpoints = {}
+def gqn_encoder(frame_shape, pose_shape, pool=False):
 
-    net = tf.nn.conv2d(frames, filter=[256, 256, 2, 2], strides=2, padding="VALID")
-    net = tf.nn.relu(net)
+    frame_input = Input(shape=frame_shape, name="frame_input")
+    pose_input = Input(shape=pose_shape, name="pose_input")
 
-    skip1 = tf.nn.conv2d(net, filter=[128, 128, 1, 1], strides=1, padding="SAME")
+    x = Conv2D(
+        filters=256, kernel_size=2, strides=2, padding="valid", activation="relu"
+    )(frame_input)
 
-    net = tf.nn.conv2d(net, filter=[128, 128, 3, 3], strides=1, padding="SAME")
-    net = tf.nn.relu(net)
+    skip1 = Conv2D(
+        filters=128,
+        kernel_size=1,
+        strides=1,
+        padding="same",
+        activation=None,
+        name="skip1",
+    )(x)
 
-    # TODO(goodmattg): correct implementation for the skip connection?
-    net = net + skip1
+    x = Conv2D(
+        filters=128, kernel_size=3, strides=1, padding="same", activation="relu"
+    )(x)
 
-    net = tf.nn.conv2d(net, filter=[256, 256, 2, 2], strides=2, padding="VALID")
-    net = tf.nn.relu(net)
+    x = Add()([x, skip1])
+
+    x = Conv2D(
+        filters=256, kernel_size=2, strides=2, padding="valid", activation="relu"
+    )(x)
 
     # tile the poses to match the embedding shape
-    height, width = tf.shape(input=net)[1], tf.shape(input=net)[2]
-    poses = broadcast_pose(poses, height, width)
+    height, width = x.shape[1], x.shape[2]
+    poses = broadcast_pose(pose_input, height, width)
 
-    # concatenate the poses with the embedding
-    net = tf.concat([net, poses], axis=3)
+    x = Concatenate(axis=3)([x, poses])
 
-    skip2 = tf.nn.conv2d(net, filter=[128, 128, 1, 1], strides=1, padding="SAME")
+    skip2 = Conv2D(
+        filters=128,
+        kernel_size=1,
+        strides=1,
+        padding="same",
+        activation=None,
+        name="skip2",
+    )(x)
 
-    net = tf.nn.conv2d(net, filter=[128, 128, 3, 3], strides=1, padding="SAME")
-    net = tf.nn.relu(net)
+    x = Conv2D(
+        filters=128, kernel_size=3, strides=1, padding="same", activation="relu"
+    )(x)
 
-    # TODO(goodmattg): correct implementation for the skip connection?
-    net = net + skip2
+    x = Add()([x, skip2])
 
-    net = tf.nn.conv2d(net, filter=[256, 256, 3, 3], strides=1, padding="SAME")
-    net = tf.nn.relu(net)
-    net = tf.nn.conv2d(net, filter=[256, 256, 1, 1], strides=1, padding="SAME")
-    net = tf.nn.relu(net)
+    x = Conv2D(
+        filters=256, kernel_size=3, strides=1, padding="same", activation="relu"
+    )(x)
 
-    return net, endpoints
+    x = Conv2D(
+        filters=256,
+        kernel_size=1,
+        strides=1,
+        padding="same",
+        activation="relu",
+        name="out",
+    )(x)
 
+    if pool:
+        out = tf.keras.backend.mean(x, axis=[1, 2], keepdims=True)
+    else:
+        out = x
 
-def pool_encoder(frames: tf.Tensor, poses: tf.Tensor, scope="PoolEncoder"):
-    """
-  Feed-forward convolutional architecture with terminal global pooling.
-  """
-    net, endpoints = tower_encoder(frames, poses, scope)
-    net = tf.reduce_mean(input_tensor=net, axis=[1, 2], keepdims=True)
-
-    return net, endpoints
-
+    return Model(inputs=[frame_input, pose_input], outputs=out)

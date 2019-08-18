@@ -92,9 +92,11 @@ ENV/
 
 # Development environment
 *.code-workspace
+/.vscode 
 
 # Data
-/data
+*.tfrecord
+
+# Non default configs
 /config/*.yaml
 !/config/default.yaml
-# Non default configs
