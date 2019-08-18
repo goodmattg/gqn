@@ -64,6 +64,10 @@ r_p_encoder = tf.reduce_sum(
     r_p_encoder_batch, axis=1
 )  # add scene representations per data tuple
 
+# Optional model visualization
+# from tensorflow.keras.utils import plot_model
+# plot_model(tower_encoder, to_file="model.png")
+
 print("\nInputs:")
 print("Frame sample shape: {}".format(frame_shape))
 print("Frame batch shape: {}".format(context_frames.shape))

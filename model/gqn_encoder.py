@@ -25,11 +25,11 @@ def gqn_encoder(frame_shape, pose_shape, pool=False):
     skip1 = Conv2D(
         filters=128,
         kernel_size=1,
-        strides=1,
+        strides=2,
         padding="same",
         activation=None,
         name="skip1",
-    )(x)
+    )(frame_input)
 
     x = Conv2D(
         filters=128, kernel_size=3, strides=1, padding="same", activation="relu"
@@ -48,7 +48,7 @@ def gqn_encoder(frame_shape, pose_shape, pool=False):
     x = Concatenate(axis=3)([x, poses])
 
     skip2 = Conv2D(
-        filters=128,
+        filters=256,
         kernel_size=1,
         strides=1,
         padding="same",
@@ -58,6 +58,10 @@ def gqn_encoder(frame_shape, pose_shape, pool=False):
 
     x = Conv2D(
         filters=128, kernel_size=3, strides=1, padding="same", activation="relu"
+    )(x)
+
+    x = Conv2D(
+        filters=256, kernel_size=3, strides=1, padding="same", activation="relu"
     )(x)
 
     x = Add()([x, skip2])
