@@ -16,18 +16,6 @@ from tensorflow.python.lib.io import file_io
 from tensorflow.python.framework.errors_impl import NotFoundError
 
 
-# Base Utilities (standard to boilerplate repository)
-def load_file(filepath, load_func, **kwargs):
-    """Generic file loader with missing/error messages."""
-    try:
-        print("Loading file from: {0}".format(filepath))
-        return load_func(filepath, **kwargs)
-    except NotFoundError as e:
-        raise NotFoundError("File not found: {0}".format(filepath))
-    except Exception as e:
-        raise Exception("Unable to load file: {0}".format(filepath))
-
-
 def pickle_loader(filepath, encoding=None):
     """Load pickle file"""
     with file_io.FileIO(filepath, mode="rb") as stream:
@@ -44,6 +32,18 @@ def yaml_loader(filepath, use_dotmap=True):
             return DotMap(yaml.safe_load(stream))
         else:
             return yaml.safe_load(stream)
+
+
+# Base Utilities (standard to boilerplate repository)
+def load_file(filepath, load_func, **kwargs):
+    """Generic file loader with missing/error messages."""
+    try:
+        print("Loading file from: {0}".format(filepath))
+        return load_func(filepath, **kwargs)
+    except NotFoundError as e:
+        raise NotFoundError("File not found: {0}".format(filepath))
+    except Exception as e:
+        raise Exception("Unable to load file: {0}".format(filepath))
 
 
 def load_training_config_file(filename):
